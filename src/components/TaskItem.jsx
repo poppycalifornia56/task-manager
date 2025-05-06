@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 
 const TaskItem = ({ task, onEdit, onDelete }) => {
+  const [showOptions, setShowOptions] = useState(false);
+
   const statusClasses = {
     pending: "bg-white",
     "in-progress": "bg-yellow-50",
@@ -52,7 +54,58 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
         priorityBorderClasses[priority]
       }`}
     >
-      <h3 className="font-bold mb-2">{task.title}</h3>
+      <div className="flex justify-between">
+        <h3 className="font-bold mb-2">{task.title}</h3>
+        <div className="relative">
+          <button
+            onClick={() => setShowOptions(!showOptions)}
+            className="text-gray-600 hover:text-gray-800"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+              className="w-5 h-5"
+            >
+              <circle cx="8" cy="2" r="1.5" />
+              <circle cx="8" cy="8" r="1.5" />
+              <circle cx="8" cy="14" r="1.5" />
+            </svg>
+          </button>
+
+          {showOptions && (
+            <div className="absolute right-0 mt-1 w-32 bg-white border rounded-md shadow-lg z-10">
+              <ul className="py-1">
+                <li>
+                  <button
+                    onClick={() => {
+                      onEdit(task);
+                      setShowOptions(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50"
+                  >
+                    Edit
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      onDelete(task.id);
+                      setShowOptions(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+
       <p className="text-gray-700 mb-2">{task.description}</p>
 
       <div className="flex flex-wrap items-center gap-2 mb-3">
@@ -84,21 +137,6 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
             Due: {formattedDueDate}
           </span>
         )}
-      </div>
-
-      <div className="flex justify-end space-x-2">
-        <button
-          onClick={() => onEdit(task)}
-          className="text-blue-600 hover:text-blue-800"
-        >
-          Edit
-        </button>
-        <button
-          onClick={() => onDelete(task.id)}
-          className="text-red-600 hover:text-red-800"
-        >
-          Delete
-        </button>
       </div>
     </div>
   );

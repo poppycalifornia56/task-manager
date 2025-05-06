@@ -48,7 +48,7 @@ const Header = () => {
         <div className="flex justify-between items-center">
           <div className="flex-shrink-0">
             <Link to="/" className="text-2xl font-bold text-blue-600">
-              Clearday
+              ClearDay
             </Link>
           </div>
 
