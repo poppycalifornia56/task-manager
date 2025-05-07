@@ -14,7 +14,7 @@ const Footer = ({ githubUsername = "poppycalifornia56" }) => {
         }}
       >
         <p style={{ margin: 0 }}>
-          &copy; {currentYear} ClearDay. All rights reserved.
+          &copy; {currentYear} Clearday. All rights reserved.
         </p>
         <span>|</span>
         <a

@@ -1,4 +1,4 @@
-# ClearDay
+# Clearday
 
 ClearDay is a task management web application built with React and Firebase. Organize your tasks, set priorities, track progress, and boost your productivity with this clean and intuitive interface.
 
@@ -14,7 +14,7 @@ ClearDay is a task management web application built with React and Firebase. Org
 
 ## Live Demo
 
-Visit the live application: [ClearDay App](https://clearday.netlify.app)
+Visit the live application: [Clearday App](https://clearday.netlify.app)
 
 ## Technologies Used
 

@@ -62,6 +62,31 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
     setShowOptions(!showOptions);
   };
 
+  const scrollToEditSection = () => {
+    const editFormSection = document.getElementById("addTaskSection");
+    if (editFormSection) {
+      window.scrollTo({
+        top: editFormSection.offsetTop - 80,
+        behavior: "smooth",
+        duration: 1000,
+      });
+    }
+  };
+
+  const handleEdit = (taskToEdit) => {
+    onEdit(taskToEdit);
+    scrollToEditSection();
+  };
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    setShowOptions(false);
+
+    if (window.confirm(`Are you sure you want to delete this task?`)) {
+      onDelete(task.id);
+    }
+  };
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -112,7 +137,7 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEdit(task);
+                        handleEdit(task);
                         setShowOptions(false);
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50"
@@ -122,11 +147,7 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
                   </li>
                   <li>
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(task.id);
-                        setShowOptions(false);
-                      }}
+                      onClick={handleDeleteClick}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                     >
                       Delete
@@ -260,7 +281,7 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
               <button
                 onClick={() => {
                   setShowDetailsDialog(false);
-                  onEdit(task);
+                  handleEdit(task);
                 }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
