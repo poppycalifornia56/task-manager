@@ -10,7 +10,7 @@ const TaskForm = ({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("pending");
-  const [priority, setPriority] = useState("medium");
+  const [priority, setPriority] = useState("low");
   const [dueDate, setDueDate] = useState("");
 
   const statusColors = {
@@ -31,7 +31,7 @@ const TaskForm = ({
       setTitle(editTask.title || "");
       setDescription(editTask.description || "");
       setStatus(editTask.status || "pending");
-      setPriority(editTask.priority || "medium");
+      setPriority(editTask.priority || "low");
       setDueDate(editTask.dueDate || "");
     } else {
       resetForm();
@@ -42,7 +42,7 @@ const TaskForm = ({
     setTitle("");
     setDescription("");
     setStatus("pending");
-    setPriority("medium");
+    setPriority("low");
     setDueDate("");
   };
 

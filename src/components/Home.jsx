@@ -23,13 +23,13 @@ import {
 } from "../services/TaskFilterService";
 
 const firebaseConfig = {
-  apiKey: "value",
-  authDomain: "value",
-  projectId: "value",
-  storageBucket: "value",
-  messagingSenderId: "value",
-  appId: "value",
-  measurementId: "value",
+  apiKey: "AIzaSyC6ckv8X6wJjl6SvOJ_mdc1Tr3FhmHhytY",
+  authDomain: "task-manager-dbe5b.firebaseapp.com",
+  projectId: "task-manager-dbe5b",
+  storageBucket: "task-manager-dbe5b.firebasestorage.app",
+  messagingSenderId: "246347715981",
+  appId: "1:246347715981:web:0f2e1769de22737b41d9c4",
+  measurementId: "G-MM6D7S4VV1",
 };
 
 const app = initializeApp(firebaseConfig);
