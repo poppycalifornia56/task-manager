@@ -23,13 +23,13 @@ import {
 } from "../services/TaskFilterService";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC6ckv8X6wJjl6SvOJ_mdc1Tr3FhmHhytY",
-  authDomain: "task-manager-dbe5b.firebaseapp.com",
-  projectId: "task-manager-dbe5b",
-  storageBucket: "task-manager-dbe5b.firebasestorage.app",
-  messagingSenderId: "246347715981",
-  appId: "1:246347715981:web:0f2e1769de22737b41d9c4",
-  measurementId: "G-MM6D7S4VV1",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
