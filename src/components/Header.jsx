@@ -9,7 +9,7 @@ const Header = () => {
   const navItems = [
     { name: "Home", targetId: isHomePage ? "addTaskSection" : null, path: "/" },
     {
-      name: "Tasks",
+      name: "My Tasks",
       targetId: isHomePage ? "yourTasksSection" : null,
       path: "/",
     },

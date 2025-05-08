@@ -46,9 +46,26 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
 
   const priority = task.priority || "medium";
 
-  const formattedDueDate = task.dueDate
-    ? new Date(task.dueDate).toLocaleDateString()
-    : null;
+  const formatDateTime = () => {
+    if (!task.dueDate) return null;
+
+    const date = new Date(task.dueDate);
+    let formattedDate = date.toLocaleDateString();
+
+    if (task.dueTime) {
+      const timeArr = task.dueTime.split(":");
+      date.setHours(parseInt(timeArr[0], 10), parseInt(timeArr[1], 10));
+      const timeStr = date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return { date: formattedDate, time: timeStr };
+    }
+
+    return { date: formattedDate, time: null };
+  };
+
+  const dateTimeInfo = formatDateTime();
 
   const handleCardClick = (e) => {
     if (e.target.closest(".toggle-menu") || e.target.closest(".options-menu")) {
@@ -62,29 +79,10 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
     setShowOptions(!showOptions);
   };
 
-  const scrollToEditSection = () => {
-    const editFormSection = document.getElementById("addTaskSection");
-    if (editFormSection) {
-      window.scrollTo({
-        top: editFormSection.offsetTop - 80,
-        behavior: "smooth",
-        duration: 1000,
-      });
-    }
-  };
-
-  const handleEdit = (taskToEdit) => {
-    onEdit(taskToEdit);
-    scrollToEditSection();
-  };
-
   const handleDeleteClick = (e) => {
     e.stopPropagation();
     setShowOptions(false);
-
-    if (window.confirm(`Are you sure you want to delete this task?`)) {
-      onDelete(task.id);
-    }
+    onDelete(task.id); 
   };
 
   useEffect(() => {
@@ -137,7 +135,7 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleEdit(task);
+                        onEdit(task);
                         setShowOptions(false);
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50"
@@ -185,9 +183,43 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
             {priority.charAt(0).toUpperCase() + priority.slice(1)} Priority
           </span>
 
-          {formattedDueDate && (
-            <span className="px-2 py-1 text-xs rounded-full bg-gray-50 border border-gray-200">
-              Due: {formattedDueDate}
+          {dateTimeInfo && (
+            <span className="px-2 py-1 text-xs rounded-full bg-gray-50 border border-gray-200 flex items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-3 w-3 mr-1 text-gray-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              {dateTimeInfo.date}
+              {dateTimeInfo.time && (
+                <>
+                  <span className="mx-1">•</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-3 w-3 mr-1 text-gray-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  {dateTimeInfo.time}
+                </>
+              )}
             </span>
           )}
         </div>
@@ -259,12 +291,55 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
               </div>
             </div>
 
-            {formattedDueDate && (
-              <div className="mb-4">
-                <div className="text-sm font-medium text-gray-500 mb-1">
-                  Due Date
+            {dateTimeInfo && (
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <div className="text-sm font-medium text-gray-500 mb-1">
+                    Due Date
+                  </div>
+                  <div className="flex items-center">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-2 text-gray-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    {dateTimeInfo.date}
+                  </div>
                 </div>
-                <div>{formattedDueDate}</div>
+
+                {dateTimeInfo.time && (
+                  <div>
+                    <div className="text-sm font-medium text-gray-500 mb-1">
+                      Due Time
+                    </div>
+                    <div className="flex items-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 mr-2 text-gray-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      {dateTimeInfo.time}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -281,7 +356,7 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
               <button
                 onClick={() => {
                   setShowDetailsDialog(false);
-                  handleEdit(task);
+                  onEdit(task);
                 }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >

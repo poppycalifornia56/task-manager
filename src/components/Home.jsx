@@ -16,6 +16,7 @@ import TaskList from "./TaskList";
 import TaskFilter from "./TaskFilter";
 import Header from "./Header";
 import Footer from "./Footer";
+import ConfirmationDialog from "./ConfirmationDialog";
 
 import {
   getTaskCountByStatus,
@@ -41,11 +42,14 @@ function App() {
   const [editMode, setEditMode] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
   const [error, setError] = useState("");
-
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [dueDateFilter, setDueDateFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
 
   const fetchTasks = async () => {
     try {
@@ -79,9 +83,15 @@ function App() {
 
     try {
       setLoading(true);
-      await addDoc(collection(db, "tasks"), task);
-      fetchTasks();
+      const newTask = {
+        ...task,
+        createdAt: new Date().toISOString(),
+      };
+      await addDoc(collection(db, "tasks"), newTask);
+      await fetchTasks();
       setError("");
+      setSuccessMessage("Task added successfully!");
+      setShowSuccessDialog(true);
     } catch (err) {
       console.error("Error adding task: ", err);
       setError("Failed to add task. Please try again.");
@@ -102,8 +112,10 @@ function App() {
       await updateDoc(taskRef, task);
       setEditMode(false);
       setCurrentTask(null);
-      fetchTasks();
+      await fetchTasks();
       setError("");
+      setSuccessMessage("Task updated successfully!");
+      setShowSuccessDialog(true);
     } catch (err) {
       console.error("Error updating task: ", err);
       setError("Failed to update task. Please try again.");
@@ -112,24 +124,42 @@ function App() {
     }
   };
 
-  const handleDeleteTask = async (id) => {
-    if (window.confirm("Are you sure you want to delete this task?")) {
-      try {
-        setLoading(true);
-        await deleteDoc(doc(db, "tasks", id));
-        fetchTasks();
-      } catch (err) {
-        console.error("Error deleting task: ", err);
-        setError("Failed to delete task. Please try again.");
-      } finally {
-        setLoading(false);
-      }
+  const initiateDeleteTask = (id) => {
+    setTaskToDelete(id);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return;
+
+    try {
+      setLoading(true);
+      await deleteDoc(doc(db, "tasks", taskToDelete));
+      await fetchTasks();
+      setShowDeleteDialog(false);
+      setTaskToDelete(null);
+      setSuccessMessage("Task deleted successfully!");
+      setShowSuccessDialog(true);
+    } catch (err) {
+      console.error("Error deleting task: ", err);
+      setError("Failed to delete task. Please try again.");
+      setShowDeleteDialog(false);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleEditTask = (task) => {
     setCurrentTask(task);
     setEditMode(true);
+
+    const editFormSection = document.getElementById("addTaskSection");
+    if (editFormSection) {
+      window.scrollTo({
+        top: editFormSection.offsetTop - 80,
+        behavior: "smooth",
+      });
+    }
   };
 
   const handleCancelEdit = () => {
@@ -191,7 +221,7 @@ function App() {
             className="bg-white rounded-lg shadow-md p-6 scroll-mt-20"
           >
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Your Tasks</h2>
+              <h2 className="text-xl font-semibold">My Tasks</h2>
               <div className="w-64">
                 <input
                   type="text"
@@ -216,13 +246,33 @@ function App() {
             <TaskList
               tasks={filteredTasks}
               onEdit={handleEditTask}
-              onDelete={handleDeleteTask}
+              onDelete={initiateDeleteTask}
               loading={loading}
             />
           </section>
         </div>
       </div>
       <Footer githubUsername="poppycalifornia56" />
+
+      <ConfirmationDialog
+        isOpen={showSuccessDialog}
+        onClose={() => setShowSuccessDialog(false)}
+        title="Success"
+        message={successMessage}
+        confirmLabel="OK"
+        type="success"
+      />
+
+      <ConfirmationDialog
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={confirmDeleteTask}
+        title="Delete Task"
+        message="Are you sure you want to delete this task?"
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        type="delete"
+      />
     </div>
   );
 }

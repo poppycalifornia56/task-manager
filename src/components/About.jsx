@@ -50,14 +50,7 @@ const About = () => {
             <section>
               <h2 className="text-xl font-semibold mb-4">Contact</h2>
               <p className="text-gray-700">
-                Have questions or suggestions? Feel free to reach out to us at{" "}
-                <a
-                  href="mailto:contact@clearday.app"
-                  className="text-blue-600 hover:text-blue-800 transition-colors"
-                >
-                  johannnhandoko@gmail.com
-                </a>{" "}
-                or visit our{" "}
+                Have questions or suggestions? Feel free to visit our{" "}
                 <a
                   href="https://github.com/poppycalifornia56/task-manager"
                   className="text-blue-600 hover:text-blue-800 transition-colors"

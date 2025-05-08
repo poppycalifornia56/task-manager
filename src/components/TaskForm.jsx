@@ -12,6 +12,8 @@ const TaskForm = ({
   const [status, setStatus] = useState("pending");
   const [priority, setPriority] = useState("low");
   const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("");
+  const [errors, setErrors] = useState({});
 
   const statusColors = {
     pending: "bg-gray-500",
@@ -33,6 +35,7 @@ const TaskForm = ({
       setStatus(editTask.status || "pending");
       setPriority(editTask.priority || "low");
       setDueDate(editTask.dueDate || "");
+      setDueTime(editTask.dueTime || "");
     } else {
       resetForm();
     }
@@ -44,16 +47,34 @@ const TaskForm = ({
     setStatus("pending");
     setPriority("low");
     setDueDate("");
+    setDueTime("");
+    setErrors({});
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    if (!title.trim()) newErrors.title = "Title is required";
+    if (!dueDate) newErrors.dueDate = "Due date is required";
+    if (!dueTime) newErrors.dueTime = "Due time is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
     const task = {
       title,
       description,
       status,
       priority,
-      dueDate: dueDate || null,
+      dueDate,
+      dueTime,
     };
 
     if (isEditMode) {
@@ -61,6 +82,13 @@ const TaskForm = ({
     } else {
       addTask(task);
       resetForm();
+    }
+  };
+
+  const handleTimeChange = (e) => {
+    setDueTime(e.target.value);
+    if (errors.dueTime) {
+      setErrors({ ...errors, dueTime: "" });
     }
   };
 
@@ -91,7 +119,7 @@ const TaskForm = ({
     const colorMap = id === "status" ? statusColors : priorityColors;
 
     return (
-      <div>
+      <div className="w-full">
         <label
           htmlFor={id}
           className="block text-sm font-medium text-gray-700 mb-1"
@@ -100,7 +128,9 @@ const TaskForm = ({
         </label>
         <div className="relative" ref={selectRef}>
           <div
-            className="w-full border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 pl-8 pr-10 py-2 bg-white cursor-pointer flex items-center justify-between"
+            className={`w-full border ${
+              errors[id] ? "border-red-500" : "border-gray-300"
+            } rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 pl-8 pr-10 py-2 bg-white cursor-pointer flex items-center justify-between`}
             onClick={() => setIsOpen(!isOpen)}
           >
             <div className="flex items-center">
@@ -156,6 +186,9 @@ const TaskForm = ({
               ))}
             </div>
           )}
+          {errors[id] && (
+            <p className="mt-1 text-sm text-red-600">{errors[id]}</p>
+          )}
         </div>
       </div>
     );
@@ -191,11 +224,21 @@ const TaskForm = ({
             type="text"
             id="title"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            onChange={(e) => {
+              setTitle(e.target.value);
+              if (errors.title) {
+                setErrors({ ...errors, title: "" });
+              }
+            }}
+            className={`w-full ${
+              errors.title ? "border-red-500" : "border-gray-300"
+            } rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500`}
             placeholder="Enter task title"
             required
           />
+          {errors.title && (
+            <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+          )}
         </div>
 
         <div className="mb-4">
@@ -215,73 +258,116 @@ const TaskForm = ({
           ></textarea>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-          <CustomSelect
-            id="status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            label="Status"
-            options={statusOptions}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+          <div className="grid grid-cols-1 gap-4">
+            <CustomSelect
+              id="status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              label="Status"
+              options={statusOptions}
+              required
+            />
 
-          <CustomSelect
-            id="priority"
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
-            label="Priority"
-            options={priorityOptions}
-          />
+            <CustomSelect
+              id="priority"
+              value={priority}
+              onChange={(e) => setPriority(e.target.value)}
+              label="Priority"
+              options={priorityOptions}
+              required
+            />
+          </div>
 
-          <div>
-            <label
-              htmlFor="dueDate"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
-              Due Date
-            </label>
-            <div className="relative">
-              <input
-                type="date"
-                id="dueDate"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 pl-8"
-              />
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 text-gray-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label
+                htmlFor="dueDate"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Due Date <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  id="dueDate"
+                  value={dueDate}
+                  onChange={(e) => {
+                    setDueDate(e.target.value);
+                    if (errors.dueDate) {
+                      setErrors({ ...errors, dueDate: "" });
+                    }
+                  }}
+                  className={`w-full ${
+                    errors.dueDate ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 pl-8`}
+                  required
+                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 text-gray-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
               </div>
+              {errors.dueDate && (
+                <p className="mt-1 text-sm text-red-600">{errors.dueDate}</p>
+              )}
             </div>
-            {<style jsx>{`
-              input[type="date"]::-webkit-calendar-picker-indicator {
-                background-position: right;
-                background-size: auto;
-                cursor: pointer;
-                display: block;
-                width: 20px;
-                height: 20px;
-                position: absolute;
-                right: 10px;
-                top: 50%;
-                transform: translateY(-50%);
-              }
-            `}</style>}
+
+            <div>
+              <label
+                htmlFor="dueTime"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Due Time <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="time"
+                  id="dueTime"
+                  value={dueTime}
+                  onChange={handleTimeChange}
+                  className={`w-full ${
+                    errors.dueTime ? "border-red-500" : "border-gray-300"
+                  } rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 pl-8`}
+                  required
+                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 text-gray-500"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              {errors.dueTime && (
+                <p className="mt-1 text-sm text-red-600">{errors.dueTime}</p>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end space-x-2">
+        <div className="flex justify-end space-x-2 mt-6">
           {isEditMode && (
             <button
               type="button"
