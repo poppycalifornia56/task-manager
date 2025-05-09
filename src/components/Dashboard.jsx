@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
@@ -43,7 +43,7 @@ function Dashboard() {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
       const tasksCollection = collection(db, "tasks");
@@ -62,13 +62,13 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser]);
 
   useEffect(() => {
     if (currentUser) {
       fetchTasks();
     }
-  }, [currentUser]);
+  }, [currentUser, fetchTasks]); 
 
   const handleAddTask = async (task) => {
     if (!task.title.trim()) {
@@ -80,7 +80,7 @@ function Dashboard() {
       setLoading(true);
       const newTask = {
         ...task,
-        userId: currentUser.uid, 
+        userId: currentUser.uid,
         createdAt: new Date().toISOString(),
       };
       await addDoc(collection(db, "tasks"), newTask);
