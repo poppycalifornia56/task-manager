@@ -1,66 +1,39 @@
 import React, { useState, useEffect } from "react";
-import { initializeApp } from "firebase/app";
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-} from "firebase/firestore";
-import "../App.css";
+import { Link } from "react-router-dom";
+import { collection, getDocs, addDoc } from "firebase/firestore";
+import { db } from "../services/firebase";
+import { useAuth } from "../contexts/AuthContext";
 
 import TaskForm from "./TaskForm";
 import TaskList from "./TaskList";
-import TaskFilter from "./TaskFilter";
 import Header from "./Header";
 import Footer from "./Footer";
 import ConfirmationDialog from "./ConfirmationDialog";
 
-import {
-  getTaskCountByStatus,
-  applyFilters,
-} from "../services/TaskFilterService";
-
-const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-function App() {
+function Home() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false);
-  const [currentTask, setCurrentTask] = useState(null);
   const [error, setError] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [priorityFilter, setPriorityFilter] = useState("all");
-  const [dueDateFilter, setDueDateFilter] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [taskToDelete, setTaskToDelete] = useState(null);
 
-  const fetchTasks = async () => {
+  // eslint-disable-next-line no-unused-vars
+  const { currentUser, isAuthenticated } = useAuth();
+
+  const fetchPublicTasks = async () => {
     try {
       setLoading(true);
       const tasksCollection = collection(db, "tasks");
       const taskSnapshot = await getDocs(tasksCollection);
-      const taskList = taskSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        priority: doc.data().priority || "medium",
-      }));
+
+      const taskList = taskSnapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          priority: doc.data().priority || "medium",
+        }))
+        .filter((task) => !task.userId);
+
       setTasks(taskList);
       setError("");
     } catch (err) {
@@ -72,7 +45,7 @@ function App() {
   };
 
   useEffect(() => {
-    fetchTasks();
+    fetchPublicTasks();
   }, []);
 
   const handleAddTask = async (task) => {
@@ -88,7 +61,7 @@ function App() {
         createdAt: new Date().toISOString(),
       };
       await addDoc(collection(db, "tasks"), newTask);
-      await fetchTasks();
+      await fetchPublicTasks();
       setError("");
       setSuccessMessage("Task added successfully!");
       setShowSuccessDialog(true);
@@ -100,103 +73,99 @@ function App() {
     }
   };
 
-  const handleUpdateTask = async (task) => {
-    if (!task.title.trim()) {
-      setError("Task title is required");
-      return;
+  const renderAuthenticationBanner = () => {
+    if (!isAuthenticated) {
+      return (
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-blue-400"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-700">
+                You're viewing public tasks.
+                <Link
+                  to="/login"
+                  className="font-medium underline text-blue-700 hover:text-blue-600 ml-1"
+                >
+                  Log in
+                </Link>{" "}
+                or
+                <Link
+                  to="/signup"
+                  className="font-medium underline text-blue-700 hover:text-blue-600 ml-1"
+                >
+                  Sign up
+                </Link>{" "}
+                to create private tasks and use other features.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-8">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg
+                className="h-5 w-5 text-green-400"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-green-700">
+                You're logged in!
+                <Link
+                  to="/dashboard"
+                  className="font-medium underline text-green-700 hover:text-green-600 ml-1"
+                >
+                  Go to your dashboard
+                </Link>{" "}
+                to view and manage your private tasks.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
     }
-
-    try {
-      setLoading(true);
-      const taskRef = doc(db, "tasks", currentTask.id);
-      await updateDoc(taskRef, task);
-      setEditMode(false);
-      setCurrentTask(null);
-      await fetchTasks();
-      setError("");
-      setSuccessMessage("Task updated successfully!");
-      setShowSuccessDialog(true);
-    } catch (err) {
-      console.error("Error updating task: ", err);
-      setError("Failed to update task. Please try again.");
-    } finally {
-      setLoading(false);
-    }
   };
-
-  const initiateDeleteTask = (id) => {
-    setTaskToDelete(id);
-    setShowDeleteDialog(true);
-  };
-
-  const confirmDeleteTask = async () => {
-    if (!taskToDelete) return;
-
-    try {
-      setLoading(true);
-      await deleteDoc(doc(db, "tasks", taskToDelete));
-      await fetchTasks();
-      setShowDeleteDialog(false);
-      setTaskToDelete(null);
-      setSuccessMessage("Task deleted successfully!");
-      setShowSuccessDialog(true);
-    } catch (err) {
-      console.error("Error deleting task: ", err);
-      setError("Failed to delete task. Please try again.");
-      setShowDeleteDialog(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEditTask = (task) => {
-    setCurrentTask(task);
-    setEditMode(true);
-
-    const editFormSection = document.getElementById("addTaskSection");
-    if (editFormSection) {
-      window.scrollTo({
-        top: editFormSection.offsetTop - 80,
-        behavior: "smooth",
-      });
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setCurrentTask(null);
-    setEditMode(false);
-  };
-
-  const handleStatusFilterChange = (filter) => {
-    setStatusFilter(filter);
-  };
-
-  const handlePriorityFilterChange = (filter) => {
-    setPriorityFilter(filter);
-  };
-
-  const handleDueDateFilterChange = (filter) => {
-    setDueDateFilter(filter);
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  const filteredTasks = applyFilters(tasks, {
-    status: statusFilter,
-    priority: priorityFilter,
-    dueDate: dueDateFilter,
-    searchTerm: searchTerm,
-  });
-
-  const taskCounts = getTaskCountByStatus(tasks);
 
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <div className="flex-grow bg-gray-100 py-8">
         <div className="max-w-4xl mx-auto px-4">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Welcome to <span className="text-blue-600">Clearday</span>
+            </h1>
+            <p className="text-lg text-gray-600">
+              The simple way to manage your tasks and stay productive
+            </p>
+          </div>
+
+          {renderAuthenticationBanner()}
+
           {error && (
             <div
               className="mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4"
@@ -206,14 +175,16 @@ function App() {
             </div>
           )}
 
-          <section id="addTaskSection">
-            <TaskForm
-              addTask={handleAddTask}
-              updateTask={handleUpdateTask}
-              editTask={currentTask}
-              isEditMode={editMode}
-              cancelEdit={handleCancelEdit}
-            />
+          <section id="addTaskSection" className="mb-8">
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">Add a Public Task</h2>
+              <p className="text-gray-600 mb-4">
+                Tasks created here are public and visible to all users.
+                {isAuthenticated &&
+                  " For private tasks, please use your dashboard."}
+              </p>
+              <TaskForm addTask={handleAddTask} isEditMode={false} />
+            </div>
           </section>
 
           <section
@@ -221,34 +192,18 @@ function App() {
             className="bg-white rounded-lg shadow-md p-6 scroll-mt-20"
           >
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">My Tasks</h2>
-              <div className="w-64">
-                <input
-                  type="text"
-                  placeholder="Search tasks..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
+              <h2 className="text-xl font-semibold">Public Tasks</h2>
             </div>
 
-            <TaskFilter
-              onFilterChange={handleStatusFilterChange}
-              currentFilter={statusFilter}
-              onPriorityFilterChange={handlePriorityFilterChange}
-              currentPriorityFilter={priorityFilter}
-              onDueDateFilterChange={handleDueDateFilterChange}
-              currentDueDateFilter={dueDateFilter}
-              taskCounts={taskCounts}
-            />
+            <TaskList tasks={tasks} loading={loading} showActions={false} />
 
-            <TaskList
-              tasks={filteredTasks}
-              onEdit={handleEditTask}
-              onDelete={initiateDeleteTask}
-              loading={loading}
-            />
+            {tasks.length === 0 && !loading && (
+              <div className="text-center py-8">
+                <p className="text-gray-500">
+                  No public tasks available. Be the first to add one!
+                </p>
+              </div>
+            )}
           </section>
         </div>
       </div>
@@ -262,19 +217,8 @@ function App() {
         confirmLabel="OK"
         type="success"
       />
-
-      <ConfirmationDialog
-        isOpen={showDeleteDialog}
-        onClose={() => setShowDeleteDialog(false)}
-        onConfirm={confirmDeleteTask}
-        title="Delete Task"
-        message="Are you sure you want to delete this task?"
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
-        type="delete"
-      />
     </div>
   );
 }
 
-export default App;
+export default Home;

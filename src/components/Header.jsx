@@ -1,20 +1,24 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const isHomePage = location.pathname === "/";
+  const { isAuthenticated } = useAuth();
 
   const navItems = [
     { name: "Home", targetId: isHomePage ? "addTaskSection" : null, path: "/" },
-    {
-      name: "My Tasks",
-      targetId: isHomePage ? "yourTasksSection" : null,
-      path: "/",
-    },
     { name: "About", path: "/about" },
   ];
+
+  const authItems = isAuthenticated
+    ? [{ name: "My Dashboard", path: "/dashboard" }]
+    : [
+        { name: "Login", path: "/login" },
+        { name: "Sign Up", path: "/signup" },
+      ];
 
   const scrollToSection = (targetId, e) => {
     e.preventDefault();
@@ -52,8 +56,8 @@ const Header = () => {
             </Link>
           </div>
 
-          <nav className="hidden md:block">
-            <ul className="flex space-x-8">
+          <nav className="hidden md:flex md:justify-between md:flex-1">
+            <ul className="flex space-x-8 ml-10">
               {navItems.map((item) => (
                 <li key={item.name}>
                   {isHomePage && item.targetId ? (
@@ -72,6 +76,23 @@ const Header = () => {
                       {item.name}
                     </Link>
                   )}
+                </li>
+              ))}
+            </ul>
+
+            <ul className="flex space-x-8">
+              {authItems.map((item) => (
+                <li key={item.name}>
+                  <Link
+                    to={item.path}
+                    className={`transition-colors duration-200 ${
+                      item.name === "Sign Up"
+                        ? "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                        : "text-gray-600 hover:text-blue-500"
+                    }`}
+                  >
+                    {item.name}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -122,6 +143,18 @@ const Header = () => {
                       {item.name}
                     </Link>
                   )}
+                </li>
+              ))}
+
+              {authItems.map((item) => (
+                <li key={item.name} className="px-4 py-2">
+                  <Link
+                    to={item.path}
+                    className="block text-gray-600 hover:text-blue-500 transition-colors duration-200"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -82,7 +82,7 @@ const TaskItem = ({ task, onEdit, onDelete }) => {
   const handleDeleteClick = (e) => {
     e.stopPropagation();
     setShowOptions(false);
-    onDelete(task.id); 
+    onDelete(task.id);
   };
 
   useEffect(() => {
