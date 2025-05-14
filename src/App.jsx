@@ -12,6 +12,7 @@ import Signup from "./components/Signup";
 import Dashboard from "./components/Dashboard";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import "./App.css";
+import AnalyticsPage from "./components/analytics/pages/AnalyticsPage";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -35,6 +36,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <AnalyticsPage />
           </ProtectedRoute>
         }
       />

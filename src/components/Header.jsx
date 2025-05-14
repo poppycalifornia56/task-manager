@@ -14,7 +14,10 @@ const Header = () => {
   ];
 
   const authItems = isAuthenticated
-    ? [{ name: "My Dashboard", path: "/dashboard" }]
+    ? [
+        { name: "My Dashboard", path: "/dashboard" },
+        { name: "View Analytics", path: "/analytics", disabled: true },
+      ]
     : [
         { name: "Login", path: "/login" },
         { name: "Sign Up", path: "/signup" },
@@ -83,16 +86,22 @@ const Header = () => {
             <ul className="flex space-x-8">
               {authItems.map((item) => (
                 <li key={item.name}>
-                  <Link
-                    to={item.path}
-                    className={`transition-colors duration-200 ${
-                      item.name === "Sign Up"
-                        ? "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-                        : "text-gray-600 hover:text-blue-500"
-                    }`}
-                  >
-                    {item.name}
-                  </Link>
+                  {item.disabled ? (
+                    <span className="text-gray-400 cursor-not-allowed">
+                      {item.name}
+                    </span>
+                  ) : (
+                    <Link
+                      to={item.path}
+                      className={`transition-colors duration-200 ${
+                        item.name === "Sign Up"
+                          ? "bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                          : "text-gray-600 hover:text-blue-500"
+                      }`}
+                    >
+                      {item.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -148,13 +157,19 @@ const Header = () => {
 
               {authItems.map((item) => (
                 <li key={item.name} className="px-4 py-2">
-                  <Link
-                    to={item.path}
-                    className="block text-gray-600 hover:text-blue-500 transition-colors duration-200"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
+                  {item.disabled ? (
+                    <span className="block text-gray-400 cursor-not-allowed">
+                      {item.name}
+                    </span>
+                  ) : (
+                    <Link
+                      to={item.path}
+                      className="block text-gray-600 hover:text-blue-500 transition-colors duration-200"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {item.name}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

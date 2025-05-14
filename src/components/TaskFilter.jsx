@@ -1,14 +1,102 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const TaskFilter = ({
-  onFilterChange,
+  statusFilter,
   currentFilter,
-  onPriorityFilterChange,
+  priorityFilter,
   currentPriorityFilter,
-  onDueDateFilterChange,
+  dueDateFilter,
   currentDueDateFilter,
-  taskCounts,
+  onFilterChange,
+  onStatusFilterChange,
+  onPriorityFilterChange,
+  onDueDateFilterChange,
+  taskCounts: propTaskCounts,
+  tasks,
 }) => {
+  const effectiveStatusFilter = statusFilter || currentFilter || "all";
+  const effectivePriorityFilter =
+    priorityFilter || currentPriorityFilter || "all";
+  const effectiveDueDateFilter = dueDateFilter || currentDueDateFilter || "all";
+  const handleStatusFilterChange =
+    onStatusFilterChange || onFilterChange || (() => {});
+  const handlePriorityFilterChange = onPriorityFilterChange || (() => {});
+  const handleDueDateFilterChange = onDueDateFilterChange || (() => {});
+
+  const [localTaskCounts, setLocalTaskCounts] = useState({
+    all: 0,
+    pending: 0,
+    "in-progress": 0,
+    completed: 0,
+    priorities: {
+      all: 0,
+      low: 0,
+      medium: 0,
+      high: 0,
+      critical: 0,
+    },
+    dueDates: {
+      all: 0,
+      today: 0,
+      week: 0,
+      month: 0,
+      overdue: 0,
+      noDueDate: 0,
+    },
+  });
+
+  const taskCounts = propTaskCounts || localTaskCounts;
+
+  useEffect(() => {
+    if (!propTaskCounts && tasks) {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + (7 - today.getDay()));
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const counts = {
+        all: tasks.length,
+        pending: tasks.filter((task) => task.status === "pending").length,
+        "in-progress": tasks.filter((task) => task.status === "in-progress")
+          .length,
+        completed: tasks.filter((task) => task.status === "completed").length,
+        priorities: {
+          all: tasks.length,
+          low: tasks.filter((task) => task.priority === "low").length,
+          medium: tasks.filter((task) => task.priority === "medium").length,
+          high: tasks.filter((task) => task.priority === "high").length,
+          critical: tasks.filter((task) => task.priority === "critical").length,
+        },
+        dueDates: {
+          all: tasks.length,
+          today: tasks.filter((task) => {
+            if (!task.dueDate) return false;
+            const dueDate = new Date(task.dueDate);
+            return dueDate.toDateString() === today.toDateString();
+          }).length,
+          week: tasks.filter((task) => {
+            if (!task.dueDate) return false;
+            const dueDate = new Date(task.dueDate);
+            return dueDate >= today && dueDate <= endOfWeek;
+          }).length,
+          month: tasks.filter((task) => {
+            if (!task.dueDate) return false;
+            const dueDate = new Date(task.dueDate);
+            return dueDate >= today && dueDate <= endOfMonth;
+          }).length,
+          overdue: tasks.filter((task) => {
+            if (!task.dueDate) return false;
+            const dueDate = new Date(task.dueDate);
+            return dueDate < today && task.status !== "completed";
+          }).length,
+          noDueDate: tasks.filter((task) => !task.dueDate).length,
+        },
+      };
+      setLocalTaskCounts(counts);
+    }
+  }, [tasks, propTaskCounts]);
+
   const statusOptions = [
     { value: "all", label: "All" },
     { value: "pending", label: "Pending" },
@@ -27,9 +115,10 @@ const TaskFilter = ({
   const dueDateOptions = [
     { value: "all", label: "All Due Dates" },
     { value: "today", label: "Due Today" },
-    { value: "week", label: "Due This Week" },
-    { value: "month", label: "Due This Month" },
+    { value: "week", label: "Due This Week", altValue: "this-week" },
+    { value: "month", label: "Due This Month", altValue: "this-month" },
     { value: "overdue", label: "Overdue" },
+    { value: "noDueDate", label: "No Due Date", altValue: "no-date" },
   ];
 
   const statusColors = {
@@ -45,6 +134,18 @@ const TaskFilter = ({
     high: "bg-yellow-500",
     critical: "bg-red-500",
     all: "bg-blue-600",
+  };
+
+  const dueDateColors = {
+    all: "bg-blue-600",
+    today: "bg-green-500",
+    week: "bg-yellow-500",
+    month: "bg-orange-500",
+    overdue: "bg-red-500",
+    noDueDate: "bg-gray-500",
+    "this-week": "bg-yellow-500",
+    "this-month": "bg-orange-500",
+    "no-date": "bg-gray-500",
   };
 
   const CustomSelect = ({ value, options, onChange, label, colorMap }) => {
@@ -63,19 +164,38 @@ const TaskFilter = ({
       };
     }, [selectRef]);
 
-    const selectedOption = options.find((option) => option.value === value);
+    const selectedOption =
+      options.find(
+        (option) => option.value === value || option.altValue === value
+      ) || options[0];
+
     const getCountText = (option) => {
-      if (option.value === "all") {
-        if (label.includes("Priority")) return `(${taskCounts.priorities.all})`;
-        if (label.includes("Due Date")) return `(${taskCounts.dueDates.all})`;
-        return `(${taskCounts.all})`;
-      } else {
-        if (label.includes("Priority"))
-          return `(${taskCounts.priorities[option.value] || 0})`;
-        if (label.includes("Due Date"))
-          return `(${taskCounts.dueDates[option.value] || 0})`;
-        return `(${taskCounts[option.value] || 0})`;
-      }
+      if (!option) return "(0)";
+
+      const count = (() => {
+        if (option.value === "all") {
+          if (label.includes("Priority")) {
+            return taskCounts?.priorities?.all || 0;
+          }
+          if (label.includes("Due Date")) {
+            return taskCounts?.dueDates?.all || 0;
+          }
+          return taskCounts?.all || 0;
+        } else {
+          if (label.includes("Priority")) {
+            return taskCounts?.priorities?.[option.value] || 0;
+          }
+          if (label.includes("Due Date")) {
+            return taskCounts?.dueDates?.[option.value] || 0;
+          }
+          return taskCounts?.[option.value] || 0;
+        }
+      })();
+      return `(${count})`;
+    };
+
+    const getColorClass = (optionValue) => {
+      return colorMap[optionValue] || "";
     };
 
     return (
@@ -90,7 +210,9 @@ const TaskFilter = ({
           >
             <div className="flex items-center">
               <span
-                className={`absolute left-3 inline-block w-3 h-3 rounded-full ${colorMap[value]}`}
+                className={`absolute left-3 inline-block w-3 h-3 rounded-full ${getColorClass(
+                  value
+                )}`}
               ></span>
               <span>
                 {selectedOption?.label} {getCountText(selectedOption)}
@@ -130,7 +252,9 @@ const TaskFilter = ({
                 <div
                   key={option.value}
                   className={`${
-                    value === option.value ? "bg-gray-100" : ""
+                    value === option.value || value === option.altValue
+                      ? "bg-gray-100"
+                      : ""
                   } cursor-pointer select-none relative py-2 pl-8 pr-4 hover:bg-gray-100`}
                   onClick={() => {
                     onChange(option.value);
@@ -138,9 +262,9 @@ const TaskFilter = ({
                   }}
                 >
                   <span
-                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 inline-block w-3 h-3 rounded-full ${
-                      colorMap[option.value]
-                    }`}
+                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 inline-block w-3 h-3 rounded-full ${getColorClass(
+                      option.value
+                    )}`}
                   ></span>
                   {option.label} {getCountText(option)}
                 </div>
@@ -152,53 +276,51 @@ const TaskFilter = ({
     );
   };
 
+  const getStatusCount = (value) => {
+    if (value === "all") {
+      return taskCounts?.all || 0;
+    }
+    return taskCounts?.[value] || 0;
+  };
+
   return (
     <div className="mb-6">
       <div className="flex flex-wrap gap-4 mb-4">
         {statusOptions.map((option) => (
           <button
             key={option.value}
-            onClick={() => onFilterChange(option.value)}
+            onClick={() => handleStatusFilterChange(option.value)}
             className={`px-3 py-1 rounded-full text-sm flex items-center ${
-              currentFilter === option.value
+              effectiveStatusFilter === option.value
                 ? "bg-blue-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             }`}
           >
             <span
               className={`inline-block w-2 h-2 rounded-full mr-1.5 ${
-                statusColors[option.value]
+                statusColors[option.value] || ""
               }`}
             ></span>
-            {option.label}{" "}
-            {option.value === "all"
-              ? `(${taskCounts.all})`
-              : `(${taskCounts[option.value] || 0})`}
+            {option.label} ({getStatusCount(option.value)})
           </button>
         ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <CustomSelect
-          value={currentPriorityFilter}
-          onChange={onPriorityFilterChange}
+          value={effectivePriorityFilter}
+          onChange={handlePriorityFilterChange}
           label="Filter by Priority"
           options={priorityOptions}
           colorMap={priorityColors}
         />
 
         <CustomSelect
-          value={currentDueDateFilter}
-          onChange={onDueDateFilterChange}
+          value={effectiveDueDateFilter}
+          onChange={handleDueDateFilterChange}
           label="Filter by Due Date"
           options={dueDateOptions}
-          colorMap={{
-            all: "bg-blue-600",
-            today: "bg-green-500",
-            week: "bg-yellow-500",
-            month: "bg-orange-500",
-            overdue: "bg-red-500",
-          }}
+          colorMap={dueDateColors}
         />
       </div>
     </div>

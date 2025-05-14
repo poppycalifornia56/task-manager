@@ -12,6 +12,13 @@ import {
 } from "firebase/firestore";
 import { db, auth, signOut } from "../services/firebase";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  getTaskCountByStatus,
+  filterTasksByStatus,
+  filterTasksByPriority,
+  filterTasksByDueDate,
+  searchTasks,
+} from "../services/TaskFilterService";
 
 import TaskForm from "./TaskForm";
 import TaskList from "./TaskList";
@@ -19,15 +26,12 @@ import TaskFilter from "./TaskFilter";
 import Header from "./Header";
 import Footer from "./Footer";
 import ConfirmationDialog from "./ConfirmationDialog";
-
-import {
-  getTaskCountByStatus,
-  applyFilters,
-} from "../services/TaskFilterService";
+import AnalyticsPreview from "./analytics/components/AnalyticsPreview";
 
 function Dashboard() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
   const [error, setError] = useState("");
@@ -39,13 +43,57 @@ function Dashboard() {
   const [successMessage, setSuccessMessage] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
+  const [taskCounts, setTaskCounts] = useState({
+    all: 0,
+    pending: 0,
+    "in-progress": 0,
+    completed: 0,
+    priorities: {
+      all: 0,
+      low: 0,
+      medium: 0,
+      high: 0,
+      critical: 0,
+    },
+    dueDates: {
+      all: 0,
+      today: 0,
+      week: 0,
+      month: 0,
+      overdue: 0,
+      noDueDate: 0,
+    },
+  });
 
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
+  const applyFilters = (tasks, filters) => {
+    let filteredTasks = [...tasks];
+
+    if (filters.status !== "all") {
+      filteredTasks = filterTasksByStatus(filteredTasks, filters.status);
+    }
+
+    if (filters.priority !== "all") {
+      filteredTasks = filterTasksByPriority(filteredTasks, filters.priority);
+    }
+
+    if (filters.dueDate !== "all") {
+      filteredTasks = filterTasksByDueDate(filteredTasks, filters.dueDate);
+    }
+
+    if (filters.searchTerm && filters.searchTerm.trim() !== "") {
+      filteredTasks = searchTasks(filteredTasks, filters.searchTerm);
+    }
+
+    return filteredTasks;
+  };
+
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
+      setAnalyticsLoading(true);
       const tasksCollection = collection(db, "tasks");
       const q = query(tasksCollection, where("userId", "==", currentUser.uid));
       const taskSnapshot = await getDocs(q);
@@ -55,10 +103,16 @@ function Dashboard() {
         priority: doc.data().priority || "medium",
       }));
       setTasks(taskList);
+
+      const counts = getTaskCountByStatus(taskList);
+      setTaskCounts(counts);
+
       setError("");
+      setAnalyticsLoading(false);
     } catch (err) {
       console.error("Error fetching tasks: ", err);
       setError("Failed to load tasks. Please try again.");
+      setAnalyticsLoading(false);
     } finally {
       setLoading(false);
     }
@@ -68,7 +122,7 @@ function Dashboard() {
     if (currentUser) {
       fetchTasks();
     }
-  }, [currentUser, fetchTasks]); 
+  }, [currentUser, fetchTasks]);
 
   const handleAddTask = async (task) => {
     if (!task.title.trim()) {
@@ -195,13 +249,11 @@ function Dashboard() {
     searchTerm: searchTerm,
   });
 
-  const taskCounts = getTaskCountByStatus(tasks);
-
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <div className="flex-grow bg-gray-100 py-8">
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-4">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">My Dashboard</h1>
             <button
@@ -221,53 +273,124 @@ function Dashboard() {
             </div>
           )}
 
-          <section id="addTaskSection">
-            <TaskForm
-              addTask={handleAddTask}
-              updateTask={handleUpdateTask}
-              editTask={currentTask}
-              isEditMode={editMode}
-              cancelEdit={handleCancelEdit}
-            />
-          </section>
-
-          <section
-            id="yourTasksSection"
-            className="bg-white rounded-lg shadow-md p-6 scroll-mt-20"
-          >
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">My Tasks</h2>
-              <div className="w-64">
-                <input
-                  type="text"
-                  placeholder="Search tasks..."
-                  value={searchTerm}
-                  onChange={handleSearchChange}
-                  className="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <section id="addTaskSection">
+                <TaskForm
+                  addTask={handleAddTask}
+                  updateTask={handleUpdateTask}
+                  editTask={currentTask}
+                  isEditMode={editMode}
+                  cancelEdit={handleCancelEdit}
                 />
-              </div>
+              </section>
+
+              <section
+                id="yourTasksSection"
+                className="bg-white rounded-lg shadow-md p-6 scroll-mt-20"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold">Your Tasks</h2>
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      placeholder="Search tasks..."
+                      value={searchTerm}
+                      onChange={handleSearchChange}
+                      className="px-3 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300"
+                    />
+                  </div>
+                </div>
+
+                <TaskFilter
+                  statusFilter={statusFilter}
+                  priorityFilter={priorityFilter}
+                  dueDateFilter={dueDateFilter}
+                  onStatusFilterChange={handleStatusFilterChange}
+                  onPriorityFilterChange={handlePriorityFilterChange}
+                  onDueDateFilterChange={handleDueDateFilterChange}
+                  taskCounts={taskCounts}
+                />
+
+                <div className="mt-4">
+                  {loading ? (
+                    <div className="flex justify-center items-center h-32">
+                      <div
+                        className="spinner-border text-primary"
+                        role="status"
+                      >
+                        <span className="sr-only">Loading...</span>
+                      </div>
+                    </div>
+                  ) : filteredTasks.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No tasks found. Add your first task above!</p>
+                    </div>
+                  ) : (
+                    <TaskList
+                      tasks={filteredTasks}
+                      onEdit={handleEditTask}
+                      onDelete={initiateDeleteTask}
+                    />
+                  )}
+                </div>
+              </section>
             </div>
 
-            <TaskFilter
-              onFilterChange={handleStatusFilterChange}
-              currentFilter={statusFilter}
-              onPriorityFilterChange={handlePriorityFilterChange}
-              currentPriorityFilter={priorityFilter}
-              onDueDateFilterChange={handleDueDateFilterChange}
-              currentDueDateFilter={dueDateFilter}
-              taskCounts={taskCounts}
-            />
+            <div className="lg:col-span-1 space-y-6">
+              <section className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-bold mb-4">Task Summary</h2>
+                <div className="flex flex-col space-y-2">
+                  <div className="flex justify-between">
+                    <span>Completed:</span>
+                    <span className="font-semibold">
+                      {taskCounts.completed}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>In Progress:</span>
+                    <span className="font-semibold">
+                      {taskCounts["in-progress"]}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Pending:</span>
+                    <span className="font-semibold">{taskCounts.pending}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-gray-200 mt-2">
+                    <span>Total:</span>
+                    <span className="font-semibold">{taskCounts.all}</span>
+                  </div>
+                </div>
+              </section>
 
-            <TaskList
-              tasks={filteredTasks}
-              onEdit={handleEditTask}
-              onDelete={initiateDeleteTask}
-              loading={loading}
-            />
-          </section>
+              <section className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-bold mb-4">Analytics Preview</h2>
+                {analyticsLoading ? (
+                  <div className="flex justify-center items-center h-32">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="sr-only">Loading...</span>
+                    </div>
+                  </div>
+                ) : (
+                  <AnalyticsPreview tasks={tasks} />
+                )}
+                <div className="mt-4">
+                  <button
+                    onClick={() => navigate("/analytics")}
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled
+                  >
+                    View Full Analytics
+                  </button>
+                </div>
+              </section>
+            </div>
+          </div>
         </div>
       </div>
-      <Footer githubUsername="poppycalifornia56" />
+
+      <Footer />
 
       <ConfirmationDialog
         isOpen={showSuccessDialog}
